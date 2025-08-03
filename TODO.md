@@ -193,10 +193,10 @@ if (!mqttClient.connected()) {
 - [x] Physical button debouncing with 50ms timing
 - [x] Static IP configuration with placeholders
 
-### Phase 1: Arduino Core Dual Tasks - PENDING
-- [ ] Implement xTaskCreatePinnedToCore for HTTP (Core 0) and MQTT (Core 1)
-- [ ] Move WiFi and button logic to main loop task
-- [ ] Add task-specific watchdog reset calls
+### Phase 1: Arduino Core Dual Tasks - COMPLETED ✅
+- [x] Implement xTaskCreatePinnedToCore for HTTP (Core 0) and MQTT (Core 1)
+- [x] Move WiFi and button logic to httpTask on Core 0
+- [x] Add task-specific watchdog reset calls in both tasks
 
 ### Phase 2: HTTP Server - PENDING  
 - [ ] HTTP server on Core 0 with input validation

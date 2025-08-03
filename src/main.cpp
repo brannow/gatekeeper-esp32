@@ -6,6 +6,24 @@
 #include "config.h"
 #include "safety.h"
 
+// Configuration variable definitions
+const char* WIFI_SSID = "YOUR_WIFI_SSID";
+const char* WIFI_PASSWORD = "YOUR_WIFI_PASSWORD";
+
+const IPAddress STATIC_IP(192, 168, 1, 100);
+const IPAddress GATEWAY(192, 168, 1, 1);
+const IPAddress SUBNET(255, 255, 255, 0);
+const IPAddress DNS_SERVER(8, 8, 8, 8);
+
+const char* MQTT_BROKER = "mqtt.rannow.de";
+const int MQTT_PORT = 8883;
+const char* MQTT_USER = "YOUR_MQTT_USER";
+const char* MQTT_PASSWORD = "YOUR_MQTT_PASSWORD";
+const char* MQTT_CLIENT_ID = "esp32_gate_controller";
+
+const char* MQTT_TRIGGER_TOPIC = "/house/iot/gate/esp32/trigger";
+const char* MQTT_STATUS_TOPIC = "/house/iot/gate/esp32/status";
+
 WebServer server(80);
 WiFiClientSecure wifiClient;
 PubSubClient mqttClient(wifiClient);
@@ -50,7 +68,7 @@ void handleTrigger() {
     }
     
     unsigned long timestamp;
-    if (!parseTimestamp(body.c_str(), &timestamp)) {
+    if (!parseTimestamp(body.c_str(), timestamp)) {
         server.send(400, "text/plain", "Invalid timestamp format");
         return;
     }
@@ -119,7 +137,7 @@ void onMqttMessage(char* topic, byte* payload, unsigned int length) {
     buffer[copyLen] = '\0';
     
     unsigned long timestamp;
-    if (!parseTimestamp(buffer, &timestamp)) {
+    if (!parseTimestamp(buffer, timestamp)) {
         Serial.println("MQTT: Invalid timestamp format");
         return;
     }

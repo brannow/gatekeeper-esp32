@@ -198,10 +198,12 @@ if (!mqttClient.connected()) {
 - [x] Move WiFi and button logic to httpTask on Core 0
 - [x] Add task-specific watchdog reset calls in both tasks
 
-### Phase 2: HTTP Server - PENDING  
-- [ ] HTTP server on Core 0 with input validation
-- [ ] POST /trigger endpoint with timestamp validation
-- [ ] GET /status and GET /lastTrigger endpoints
+### Phase 2: HTTP Server - COMPLETED ✅
+- [x] HTTP server on Core 0 with input validation
+- [x] POST /trigger endpoint with timestamp validation (numeric check, 32 char limit)
+- [x] GET /status and GET /lastTrigger endpoints
+- [x] Fixed-size buffer validation with bounds checking
+- [x] Duplicate prevention using 5-second window
 
 ### Phase 3: MQTT Client - PENDING
 - [ ] MQTT client on Core 1 with TLS connection

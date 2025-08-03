@@ -2,7 +2,7 @@
 
 ## Architecture Decision: Arduino Core + Dual Tasks
 - **Arduino Core Benefits**: Library compatibility, easier debugging, Arduino watchdog integration
-- **Dual Tasks**: `xTaskCreatePinnedToCore()` provides FreeRTOS benefits with Arduino simplicity
+- **Dual Tasks**: `xTaskCreatePinnedToCore()` provides Arduino Core dual-task benefits
 - **HTTP Input Validation**: JSON parsing and content-type validation to prevent crashes
 - **Watchdog Timeout**: 30 seconds for proper TLS handshake completion
 - **Timestamp Logic**: Client-provided timestamps stored as int, age-based duplicate checking
@@ -96,7 +96,7 @@ bool isValidTrigger(unsigned long clientTimestamp) {
 - All tasks must reset watchdog every 15 seconds
 - Automatic ESP32 reset if any task hangs
 
-**FreeRTOS Integration**: Watchdog task monitors other task health
+**Arduino Watchdog Integration**: Built-in watchdog monitors task health
 
 ## Build & Test Plan
 
@@ -111,14 +111,45 @@ bool isValidTrigger(unsigned long clientTimestamp) {
 1. HTTP trigger with valid/invalid JSON
 2. MQTT trigger from mosquitto_pub
 3. Malformed HTTP requests (crash testing)
-4. FreeRTOS task monitoring via Serial output
+4. Arduino Core task monitoring via Serial output
 5. Watchdog timeout simulation (30s)
 
-## FreeRTOS Task Priorities
+## Arduino Core Task Priorities
 
 **Priority 3 (Highest)**: Watchdog monitoring
 **Priority 2 (Normal)**: HTTP Server, MQTT Client  
 **Priority 1 (Low)**: WiFi monitoring, status updates
+
+## Phase 6: Auto-Reconnect Logic (Future Enhancement)
+**Goal**: Robust connection recovery with minimal resource usage
+
+**WiFi Auto-Reconnect**:
+```cpp
+// In main task loop
+if (WiFi.status() != WL_CONNECTED) {
+    unsigned long backoffDelay = min(60000, 1000 * pow(2, wifiRetryCount));
+    delay(backoffDelay);
+    WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
+    wifiRetryCount++;
+}
+```
+
+**MQTT Auto-Reconnect**:
+```cpp
+// In MQTT task loop
+if (!mqttClient.connected()) {
+    unsigned long backoffDelay = min(60000, 1000 * pow(2, mqttRetryCount));
+    delay(backoffDelay);
+    mqttClient.connect(MQTT_CLIENT_ID, MQTT_USER, MQTT_PASSWORD);
+    mqttRetryCount++;
+}
+```
+
+**Connection Health Checks**:
+- Check WiFi status every 30 seconds
+- Check MQTT connection every 60 seconds
+- Reset retry counters on successful connection
+- Max backoff: 60 seconds
 
 ## Deployment Checklist
 
@@ -127,20 +158,22 @@ bool isValidTrigger(unsigned long clientTimestamp) {
 - [ ] Test relay pulse duration (200ms ± 50ms)
 - [ ] Confirm MQTT broker connectivity with 30s timeout
 - [ ] Validate HTTP input parsing handles malformed JSON
-- [ ] Test FreeRTOS task stability under load
+- [ ] Test Arduino Core task stability under load
 - [ ] Physical button still works (GPIO 0)
+- [ ] Implement WiFi auto-reconnect with exponential backoff
+- [ ] Implement MQTT auto-reconnect with exponential backoff
 
 ## Non-Functional Requirements
 
 **Performance**: 
 - HTTP response < 500ms
 - MQTT publish within 1s of trigger
-- FreeRTOS context switching overhead < 1ms
+- Arduino Core context switching overhead < 1ms
 
 **Reliability**:
 - Input validation prevents crashes from malformed requests
 - 30-second watchdog allows TLS handshake completion
-- FreeRTOS handles task scheduling and resource management
+- Arduino Core handles task scheduling and resource management
 
 **Security**:
 - TLS for MQTT (homebrew project, local trust model)
@@ -149,4 +182,4 @@ bool isValidTrigger(unsigned long clientTimestamp) {
 
 ---
 
-*FreeRTOS provides robust task management, eliminating manual core coordination complexity while maintaining real-time performance guarantees.*
+*Arduino Core provides robust task management via underlying FreeRTOS, eliminating manual core coordination complexity while maintaining real-time performance guarantees.*

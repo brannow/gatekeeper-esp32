@@ -146,7 +146,8 @@ xTaskCreatePinnedToCore(mqttTask, "MQTT", 8192, NULL, 1, NULL, 1);
 ### Reliability Features
 **Auto-Reconnect Logic** (planned future enhancement):
 - WiFi connection monitoring and recovery
-- MQTT broker reconnection handling
+- MQTT broker reconnection handling with exponential backoff
+- Connection health checks in main task loops
 
 **Watchdog Timer Implementation**:
 - Arduino watchdog with 30-second timeout (suitable for TLS handshakes)
@@ -227,7 +228,7 @@ Gatekeeper_controller/
 3. **MQTT Client**: TLS connection with Arduino libraries
 4. **Security**: MQTT user permissions and TLS
 5. **Reliability**: 30-second Arduino watchdog timer
-6. **Enhancement**: Auto-reconnect logic in task loops
+6. **Enhancement**: Auto-reconnect logic with exponential backoff in task loops
 
 ---
 

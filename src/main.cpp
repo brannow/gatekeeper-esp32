@@ -38,13 +38,26 @@ bool parseTimestamp(const char* input, unsigned long& result) {
     size_t len = strlen(buffer);
     if (len == 0 || len > 32) return false;
     
+    // Validate numeric only
     for (size_t i = 0; i < len; i++) {
         if (!isdigit(buffer[i])) return false;
     }
     
-    char* endptr;
-    result = strtoul(buffer, &endptr, 10);
+    // Handle milliseconds: truncate to 10 digits if 13+ digits
+    if (len >= 13) {
+        buffer[10] = '\0';
+        len = 10;
+    }
     
+    char* endptr;
+    unsigned long long temp = strtoull(buffer, &endptr, 10);
+    
+    // Overflow detection after truncation
+    if (temp > ULONG_MAX) {
+        return false; // Still too large even after truncation
+    }
+    
+    result = (unsigned long)temp;
     return (*endptr == '\0');
 }
 

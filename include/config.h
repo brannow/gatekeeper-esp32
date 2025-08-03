@@ -30,8 +30,8 @@ extern const char* MQTT_TRIGGER_TOPIC;
 extern const char* MQTT_STATUS_TOPIC;
 
 // Safety Timeouts
-constexpr unsigned long RELAY_PULSE_DURATION_MS = 200;
-constexpr unsigned long DUPLICATE_WINDOW_SECONDS = 5;
+constexpr unsigned long RELAY_PULSE_DURATION_MS = 300;
+constexpr unsigned long DUPLICATE_WINDOW_SECONDS = 3;
 constexpr unsigned long WATCHDOG_TIMEOUT_SECONDS = 30;
 
 #endif

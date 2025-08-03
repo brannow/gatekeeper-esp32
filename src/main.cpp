@@ -10,10 +10,10 @@
 const char* WIFI_SSID = "YOUR_WIFI_SSID";
 const char* WIFI_PASSWORD = "YOUR_WIFI_PASSWORD";
 
-const IPAddress STATIC_IP(192, 168, 1, 100);
+const IPAddress STATIC_IP(192, 168, 1, 210);
 const IPAddress GATEWAY(192, 168, 1, 1);
 const IPAddress SUBNET(255, 255, 255, 0);
-const IPAddress DNS_SERVER(8, 8, 8, 8);
+const IPAddress DNS_SERVER(1, 1, 1, 1);
 
 const char* MQTT_BROKER = "mqtt.rannow.de";
 const int MQTT_PORT = 8883;
@@ -56,6 +56,15 @@ bool isValidTrigger(unsigned long clientTimestamp) {
 }
 
 void handleTrigger() {
+    server.sendHeader("Access-Control-Allow-Origin", "*");
+    server.sendHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
+    server.sendHeader("Access-Control-Allow-Headers", "Content-Type");
+    
+    if (server.method() == HTTP_OPTIONS) {
+        server.send(200, "text/plain", "");
+        return;
+    }
+    
     if (server.method() != HTTP_POST) {
         server.send(405, "text/plain", "Method Not Allowed");
         return;
@@ -85,10 +94,12 @@ void handleTrigger() {
 }
 
 void handleStatus() {
+    server.sendHeader("Access-Control-Allow-Origin", "*");
     server.send(200, "text/plain", relayActive ? "1" : "0");
 }
 
 void handleLastTrigger() {
+    server.sendHeader("Access-Control-Allow-Origin", "*");
     server.send(200, "text/plain", String(lastTriggerTimestamp));
 }
 
@@ -206,7 +217,7 @@ void setup() {
     Serial.println(WiFi.localIP());
     
     xTaskCreatePinnedToCore(httpTask, "HTTP", 8192, NULL, 1, NULL, 0);
-    xTaskCreatePinnedToCore(mqttTask, "MQTT", 8192, NULL, 1, NULL, 1);
+    //xTaskCreatePinnedToCore(mqttTask, "MQTT", 8192, NULL, 1, NULL, 1);
     
     Serial.println("Phase 1 dual tasks started");
 }

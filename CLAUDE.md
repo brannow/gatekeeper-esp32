@@ -191,6 +191,13 @@ Gatekeeper_controller/
 - **Build Command**: `~/.platformio/penv/bin/pio run`
 - **Upload Port**: `/dev/cu.usbserial-A5069RR4` (configured in platformio.ini)
 - **Framework**: Arduino on ESP32 platform
+- **Monitor Speed**: 115200 baud
+
+### Git Workflow
+- **Pre-Change Check**: Before any major implementation, check for uncommitted changes
+- **Commit Frequency**: Commit after completing each TODO item
+- **Commit Messages**: Short, descriptive commit messages
+- **Logging**: Use Serial output for debugging and monitoring (Serial.begin(115200))
 
 ## Implementation Priority
 0. WiFi Client with const credential placeholders

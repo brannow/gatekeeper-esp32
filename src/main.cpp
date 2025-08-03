@@ -1,42 +1,52 @@
 #include <Arduino.h>
-
-constexpr uint8_t BTN_PIN = 0;
-constexpr uint8_t LED_PIN = 23;
-constexpr uint8_t RELAY_PIN = 16;
-
-bool relayState = false;
+#include <WiFi.h>
+#include "config.h"
+#include "safety.h"
 
 void setup() {
-  Serial.begin(115200);
-  pinMode(BTN_PIN, INPUT_PULLUP);
-  pinMode(LED_PIN, OUTPUT);
-  pinMode(RELAY_PIN, OUTPUT);
-  Serial.println("Ready – release button to toggle");
+    Serial.begin(115200);
+    Serial.println("ESP32 Gate Controller starting...");
+    
+    initializeGPIO();
+    initializeWatchdog();
+    
+    WiFi.mode(WIFI_STA);
+    WiFi.config(STATIC_IP, GATEWAY, SUBNET, DNS_SERVER);
+    WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
+    
+    Serial.print("Connecting to WiFi");
+    while (WiFi.status() != WL_CONNECTED) {
+        delay(500);
+        Serial.print(".");
+        resetWatchdog();
+    }
+    
+    Serial.println();
+    Serial.print("WiFi connected - IP: ");
+    Serial.println(WiFi.localIP());
+    
+    Serial.println("Phase 0 foundation ready");
 }
 
 void loop() {
-  static uint8_t btnState = HIGH;
-  static uint8_t lastDebouncedState = HIGH;  // Track debounced state
-  static uint32_t lastChange = 0;
-  
-  uint8_t current = digitalRead(BTN_PIN);
-  
-  if (current != btnState) {
-    lastChange = millis();
-    btnState = current;
-  }
-  
-  // Check if state has been stable long enough
-  if (millis() - lastChange > 50) {
-    // Only trigger on transition from LOW to HIGH
-    if (lastDebouncedState == LOW && btnState == HIGH) {
-      relayState = !relayState;
-      digitalWrite(LED_PIN, relayState);
-      digitalWrite(RELAY_PIN, relayState);
-      Serial.println(relayState ? "ON" : "OFF");
+    static unsigned long lastButtonCheck = 0;
+    static bool lastButtonState = false;
+    
+    unsigned long now = millis();
+    
+    if (now - lastButtonCheck > 50) {
+        bool currentButtonState = readPhysicalButton();
+        
+        if (!lastButtonState && currentButtonState) {
+            Serial.println("Physical button pressed - triggering relay");
+            triggerRelayPulse();
+            lastTriggerTimestamp = now;
+        }
+        
+        lastButtonState = currentButtonState;
+        lastButtonCheck = now;
     }
-    lastDebouncedState = btnState;  // Update debounced state
-  }
-  
-  delay(10);  // Much shorter delay
+    
+    resetWatchdog();
+    delay(10);
 }

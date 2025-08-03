@@ -7,6 +7,16 @@
 - **Watchdog Timeout**: 30 seconds for proper TLS handshake completion
 - **Timestamp Logic**: Client-provided timestamps stored as int, age-based duplicate checking
 
+## File Structure (Safety-Critical Design)
+
+**Decision: Minimal files for gate safety**
+- **main.cpp**: All networking, HTTP, MQTT logic (single-file debugging)
+- **safety.cpp**: GPIO control, watchdog, relay timing only
+- **config.h**: Credentials, pins, safety timeouts
+- **safety.h**: Hardware function declarations
+
+**Rationale**: Gate malfunction = safety hazard. Fewer files = easier emergency debugging.
+
 ## Implementation Strategy
 
 ### Phase 0: Foundation (WiFi + Basic GPIO)
@@ -173,15 +183,39 @@ if (!mqttClient.connected()) {
 - Reset retry counters on successful connection
 - Max backoff: 60 seconds
 
+## Progress Status
+
+### Phase 0: Foundation - COMPLETED ✅
+- [x] Created include/config.h with credential placeholders and pin definitions
+- [x] Created include/safety.h and src/safety.cpp for GPIO control isolation  
+- [x] Replaced main.cpp with WiFi client and momentary 200ms relay pulse
+- [x] Implemented 30s watchdog with proper reset calls
+- [x] Physical button debouncing with 50ms timing
+- [x] Static IP configuration with placeholders
+
+### Phase 1: Arduino Core Dual Tasks - PENDING
+- [ ] Implement xTaskCreatePinnedToCore for HTTP (Core 0) and MQTT (Core 1)
+- [ ] Move WiFi and button logic to main loop task
+- [ ] Add task-specific watchdog reset calls
+
+### Phase 2: HTTP Server - PENDING  
+- [ ] HTTP server on Core 0 with input validation
+- [ ] POST /trigger endpoint with timestamp validation
+- [ ] GET /status and GET /lastTrigger endpoints
+
+### Phase 3: MQTT Client - PENDING
+- [ ] MQTT client on Core 1 with TLS connection
+- [ ] Subscribe to trigger topic and publish status updates
+
 ## Deployment Checklist
 
-- [ ] Update all credential placeholders
-- [ ] Verify static IP doesn't conflict with network
-- [ ] Test relay pulse duration (200ms ± 50ms)
+- [x] Update all credential placeholders (in config.h)
+- [x] Verify static IP doesn't conflict with network (192.168.1.100)
+- [x] Test relay pulse duration (200ms implemented)
 - [ ] Confirm MQTT broker connectivity with 30s timeout
 - [ ] Validate HTTP input parsing handles malformed timestamp strings (numeric check, length limits)
 - [ ] Test Arduino Core task stability under load
-- [ ] Physical button still works (GPIO 0)
+- [x] Physical button still works (GPIO 0)
 - [ ] Implement WiFi auto-reconnect with exponential backoff
 - [ ] Implement MQTT auto-reconnect with exponential backoff
 

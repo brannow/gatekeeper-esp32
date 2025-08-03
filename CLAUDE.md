@@ -196,21 +196,30 @@ Remote gate control from mobile devices, enabling:
 ✅ **Efficient**: Arduino Core dual-task architecture maximizes ESP32 capabilities  
 
 ## Implementation Approach
-- **Scope**: Private hobby project, single ESP32 deployment
+- **Scope**: Private hobby project, single ESP32 deployment, **safety-critical gate control**
 - **Error Handling**: Happy-path focus, error handling deferred
 - **Configuration**: All credentials/settings as const variables with placeholders
 - **Timeline**: No pressure, iterative development
+- **File Structure**: Minimal files for safety - easier debugging when gate malfunctions
 
-## Project Structure
+## Project Structure (Safety-First Design)
 ```
 Gatekeeper_controller/
 ├── platformio.ini          # PlatformIO config (ESP32, Arduino framework)
 ├── src/
-│   └── main.cpp            # Current: Basic button/relay toggle
-├── include/                # Header files
-├── lib/                    # Local libraries
-└── test/                   # Unit tests
+│   ├── main.cpp            # All networking/logic - single file debugging
+│   └── safety.cpp          # GPIO control, watchdog, relay timing only
+├── include/
+│   ├── config.h            # Credentials, pins, safety timeouts
+│   └── safety.h            # Hardware safety functions
+└── lib/                    # Arduino libraries only
 ```
+
+**Safety Rationale**: 
+- **Single file debugging**: When gate fails, all control logic visible immediately
+- **Minimal dependencies**: Fewer failure points for critical hardware
+- **No testing framework**: DIY hobby project, manual verification sufficient
+- **Physical bypass**: Original DIP switch always functional
 
 ## Build & Development
 - **Build Command**: `~/.platformio/penv/bin/pio run`

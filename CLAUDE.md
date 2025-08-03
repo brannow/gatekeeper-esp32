@@ -68,21 +68,42 @@ Drop them completely—output only clear facts, risks, and needed next steps.
 
 ## Core Architecture
 
-### Dual-Core Implementation
+### Arduino Core Dual-Task Implementation
 
-**Core 0: HTTP Server**
-- Minimal rudimentary HTTP API server
+**Architecture Decision: Arduino Core vs Full FreeRTOS**
+- Arduino Core already uses FreeRTOS under the hood via `xTaskCreatePinnedToCore()`
+- **Rejected Full FreeRTOS because:**
+  - Library compatibility issues with HTTP/MQTT libraries designed for Arduino
+  - Significantly increased debugging complexity for minimal benefit
+  - No measurable performance gain for simple gate control logic
+  - Maintenance overhead inappropriate for hobby project
+- **Arduino Core Benefits:**
+  - 95% of FreeRTOS capabilities with 50% of complexity
+  - Seamless library ecosystem compatibility
+  - Built-in watchdog integration
+  - Simpler development and debugging workflow
+
+**Core 0: HTTP Server Task** (8KB stack)
+```cpp
+xTaskCreatePinnedToCore(httpTask, "HTTP", 8192, NULL, 1, NULL, 0);
+```
+- Minimal HTTP API server with input validation
 - Local network access only
 - Endpoints:
-  - `POST /trigger` - Accepts timestamp in request body
+  - `POST /trigger` - Accepts timestamp in JSON body with validation
   - `GET /status` - Returns current relay state
-  - `GET /lastTrigger` - Returns the last time the trigger was called (uses the timestamp of the trigger)
+  - `GET /lastTrigger` - Returns stored client timestamp
+- JSON parsing and content-type validation to prevent crashes
 
-**Core 1: MQTT Client**
+**Core 1: MQTT Client Task** (8KB stack)
+```cpp
+xTaskCreatePinnedToCore(mqttTask, "MQTT", 8192, NULL, 1, NULL, 1);
+```
 - Connect to remote MQTT broker (`mqtt.rannow.de`)
 - Topics:
   - Subscribe: `/house/iot/gate/esp32/trigger` (receive trigger commands)
   - Publish: `/house/iot/gate/esp32/status` (report relay state as 1/0)
+- WiFi reconnection logic integrated
 
 ### Security Model
 **HTTP API**:
@@ -97,11 +118,11 @@ Drop them completely—output only clear facts, risks, and needed next steps.
   - WRITE access: `/house/iot/gate/esp32/status` topic only
 - Principle of least privilege
 
-### Anti-Replay Protection
-- **Timestamp-based deduplication** on both HTTP and MQTT
-- Prevents accidental double-triggers
-- Provides graceful handling of duplicate requests
-- Guards against replay attacks
+### Client Timestamp Management
+- **Client-provided timestamp storage** as integer variable
+- **Age-based duplicate checking** (5-second window)
+- Prevents accidental double-triggers within short timeframe
+- Simple duplicate prevention for homebrew use case
 
 ## Access Methods
 
@@ -128,9 +149,9 @@ Drop them completely—output only clear facts, risks, and needed next steps.
 - MQTT broker reconnection handling
 
 **Watchdog Timer Implementation**:
-- Hardware watchdog with ~10 second timeout
-- Both cores must regularly "pet the dog" (`esp_task_wdt_reset()`)
-- Automatic system reboot if either core hangs
+- Arduino watchdog with 30-second timeout (suitable for TLS handshakes)
+- Both tasks must reset watchdog every 15 seconds (`esp_task_wdt_reset()`)
+- Automatic system reboot if either task hangs
 - Critical for remote deployment reliability
 
 **Error Recovery**:
@@ -168,7 +189,7 @@ Remote gate control from mobile devices, enabling:
 ✅ **Flexible**: Multiple access methods (local + remote)  
 ✅ **Scalable**: Can integrate with home automation systems  
 ✅ **Reliable**: Timestamp deduplication prevents double-triggers  
-✅ **Efficient**: Dual-core utilization maximizes ESP32 capabilities  
+✅ **Efficient**: Arduino Core dual-task architecture maximizes ESP32 capabilities  
 
 ## Implementation Approach
 - **Scope**: Private hobby project, single ESP32 deployment
@@ -201,11 +222,12 @@ Gatekeeper_controller/
 
 ## Implementation Priority
 0. WiFi Client with const credential placeholders
-1. **Core Vision**: HTTP server (happy-path only)
-2. **MQTT** client with dual-core architecture
-3. **Security**: MQTT user permissions and TLS
-4. **Reliability**: Watchdog timer implementation (for core + wifi watch)
-5. **Enhancement**: Auto-reconnect logic (optional)
+1. **Arduino Dual Tasks**: xTaskCreatePinnedToCore for HTTP (Core 0) and MQTT (Core 1)
+2. **HTTP Server**: Input validation and crash prevention
+3. **MQTT Client**: TLS connection with Arduino libraries
+4. **Security**: MQTT user permissions and TLS
+5. **Reliability**: 30-second Arduino watchdog timer
+6. **Enhancement**: Auto-reconnect logic in task loops
 
 ---
 

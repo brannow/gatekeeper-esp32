@@ -1,10 +1,14 @@
 #include <Arduino.h>
 #include <WiFi.h>
 #include <WebServer.h>
+#include <WiFiClientSecure.h>
+#include <PubSubClient.h>
 #include "config.h"
 #include "safety.h"
 
 WebServer server(80);
+WiFiClientSecure wifiClient;
+PubSubClient mqttClient(wifiClient);
 
 bool parseTimestamp(const char* input, unsigned long& result) {
     if (!input) return false;
@@ -106,12 +110,58 @@ void httpTask(void* parameter) {
     }
 }
 
+void onMqttMessage(char* topic, byte* payload, unsigned int length) {
+    if (strcmp(topic, MQTT_TRIGGER_TOPIC) != 0) return;
+    
+    char buffer[33];
+    size_t copyLen = min((size_t)length, (size_t)32);
+    strncpy(buffer, (char*)payload, copyLen);
+    buffer[copyLen] = '\0';
+    
+    unsigned long timestamp;
+    if (!parseTimestamp(buffer, &timestamp)) {
+        Serial.println("MQTT: Invalid timestamp format");
+        return;
+    }
+    
+    if (!isValidTrigger(timestamp)) {
+        Serial.println("MQTT: Duplicate request");
+        return;
+    }
+    
+    triggerRelayPulse();
+    Serial.print("MQTT trigger - timestamp: ");
+    Serial.println(timestamp);
+    
+    mqttClient.publish(MQTT_STATUS_TOPIC, relayActive ? "1" : "0");
+}
+
 void mqttTask(void* parameter) {
     Serial.println("MQTT Task started on Core 1");
     
+    wifiClient.setInsecure();
+    mqttClient.setServer(MQTT_BROKER, MQTT_PORT);
+    mqttClient.setCallback(onMqttMessage);
+    
     while (true) {
+        if (!mqttClient.connected()) {
+            Serial.print("Connecting to MQTT broker...");
+            if (mqttClient.connect(MQTT_CLIENT_ID, MQTT_USER, MQTT_PASSWORD)) {
+                Serial.println(" connected");
+                mqttClient.subscribe(MQTT_TRIGGER_TOPIC);
+                Serial.print("Subscribed to: ");
+                Serial.println(MQTT_TRIGGER_TOPIC);
+            } else {
+                Serial.print(" failed, rc=");
+                Serial.print(mqttClient.state());
+                Serial.println(" retrying in 5 seconds");
+                delay(5000);
+            }
+        }
+        
+        mqttClient.loop();
         resetWatchdog();
-        delay(1000);
+        delay(100);
     }
 }
 

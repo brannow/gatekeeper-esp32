@@ -205,9 +205,13 @@ if (!mqttClient.connected()) {
 - [x] Fixed-size buffer validation with bounds checking
 - [x] Duplicate prevention using 5-second window
 
-### Phase 3: MQTT Client - PENDING
-- [ ] MQTT client on Core 1 with TLS connection
-- [ ] Subscribe to trigger topic and publish status updates
+### Phase 3: MQTT Client - COMPLETED ✅
+- [x] MQTT client on Core 1 with TLS connection (port 8883)
+- [x] Subscribe to /house/iot/gate/esp32/trigger topic
+- [x] Publish to /house/iot/gate/esp32/status topic
+- [x] Same timestamp validation as HTTP API
+- [x] Auto-reconnect with 5-second retry interval
+- [x] WiFiClientSecure with setInsecure() for homebrew setup
 
 ## Deployment Checklist
 

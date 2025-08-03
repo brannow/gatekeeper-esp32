@@ -63,7 +63,7 @@ Drop them completely—output only clear facts, risks, and needed next steps.
   - GPIO 16: Relay control (gate trigger)
   - GPIO 23: Status LED
 - **Gate Integration**: Relay wired in parallel with existing DIP switch
-- **Trigger Method**: Momentary pulse (HIGH → LOW, ~200ms) to simulate button press
+- **Trigger Method**: Momentary pulse (HIGH → LOW, 300ms) to simulate button press
 - **Motor Interface**: 2-wire sense connection (low current, trigger-only)
 
 ## Core Architecture
@@ -106,7 +106,7 @@ xTaskCreatePinnedToCore(mqttTask, "MQTT", 8192, NULL, 1, NULL, 1);
   - Subscribe: `/house/iot/gate/esp32/trigger` (receive raw timestamp strings)
   - Publish: `/house/iot/gate/esp32/status` (report relay state as 1/0)
 - MQTT message format: raw timestamp strings (consistent with HTTP API)
-- WiFi reconnection logic integrated
+- WiFi and MQTT auto-reconnect with exponential backoff integrated
 
 ### Security Model
 **HTTP API**:
@@ -115,17 +115,21 @@ xTaskCreatePinnedToCore(mqttTask, "MQTT", 8192, NULL, 1, NULL, 1);
 
 **MQTT Security**:
 - TLS connection to broker via port 8883 (mqtts)
-- MQTT credentials defined as const variables (user-provided placeholders)
+- Let's Encrypt ISRG Root X1 certificate validation
+- NTP time synchronization for certificate validation
+- MQTT credentials defined as const variables (configured)
 - Dedicated ESP32 user with restricted permissions:
-  - READ access: `/house/iot/gate/esp32/trigger` topic only
-  - WRITE access: `/house/iot/gate/esp32/status` topic only
+  - READ access: `iot/house/gate/esp32/trigger` topic only
+  - WRITE access: `iot/house/gate/esp32/status` topic only
 - Principle of least privilege
 
 ### Client Timestamp Management
 - **Client-provided timestamp storage** as integer variable
-- **Age-based duplicate checking** (5-second window)
-- Prevents accidental double-triggers within short timeframe
-- Simple duplicate prevention for homebrew use case
+- **Age-based duplicate checking** (3-second window)
+- **Overflow protection** - Auto-converts 13-digit milliseconds to 10-digit seconds
+- **Mixed validation approach** - Truncation + overflow detection
+- Prevents accidental double-triggers and timestamp overflow deadlocks
+- Robust handling of PWA millisecond timestamps
 
 ## Access Methods
 
@@ -147,10 +151,11 @@ xTaskCreatePinnedToCore(mqttTask, "MQTT", 8192, NULL, 1, NULL, 1);
 ## Technical Considerations
 
 ### Reliability Features
-**Auto-Reconnect Logic** (planned future enhancement):
-- WiFi connection monitoring and recovery
-- MQTT broker reconnection handling with exponential backoff
-- Connection health checks in main task loops
+**Auto-Reconnect Logic** (implemented):
+- WiFi connection monitoring every 30 seconds with exponential backoff (5s → 300s max)
+- MQTT broker reconnection every 60 seconds with exponential backoff (10s → 300s max)
+- Cascading recovery: WiFi down → MQTT disconnect → WiFi up → MQTT reconnect
+- Connection timeout protection and watchdog integration
 
 **Watchdog Timer Implementation**:
 - Arduino watchdog with 30-second timeout (suitable for TLS handshakes)
@@ -188,11 +193,11 @@ Remote gate control from mobile devices, enabling:
 
 ## Architecture Benefits
 
-✅ **Fault Tolerant**: Watchdog ensures automatic recovery  
-✅ **Secure**: Proper MQTT permissions, local-only HTTP  
-✅ **Flexible**: Multiple access methods (local + remote)  
+✅ **Fault Tolerant**: Watchdog ensures automatic recovery + robust auto-reconnect  
+✅ **Secure**: Let's Encrypt TLS validation, proper MQTT permissions, CORS-enabled HTTP  
+✅ **Flexible**: Multiple access methods (local + remote) with PWA compatibility  
 ✅ **Scalable**: Can integrate with home automation systems  
-✅ **Reliable**: Timestamp deduplication prevents double-triggers  
+✅ **Reliable**: Timestamp overflow protection, deduplication, network resilience  
 ✅ **Efficient**: Arduino Core dual-task architecture maximizes ESP32 capabilities  
 
 ## Implementation Approach

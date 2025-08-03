@@ -32,7 +32,7 @@ const IPAddress GATEWAY(192, 168, 1, 1);
 
 **Tasks**:
 1. WiFi client with static IP configuration
-2. GPIO 16 relay control (HIGH→LOW pulse, 200ms)
+2. GPIO 16 relay control (HIGH→LOW pulse, 300ms)
 3. GPIO 23 status LED for visual feedback  
 4. Serial logging at 115200 baud
 
@@ -207,34 +207,46 @@ if (!mqttClient.connected()) {
 
 ### Phase 3: MQTT Client - COMPLETED ✅
 - [x] MQTT client on Core 1 with TLS connection (port 8883)
-- [x] Subscribe to /house/iot/gate/esp32/trigger topic
-- [x] Publish to /house/iot/gate/esp32/status topic
+- [x] Subscribe to iot/house/gate/esp32/trigger topic
+- [x] Publish to iot/house/gate/esp32/status topic
 - [x] Same timestamp validation as HTTP API
-- [x] Auto-reconnect with 5-second retry interval
-- [x] WiFiClientSecure with setInsecure() for homebrew setup
+- [x] Let's Encrypt ISRG Root X1 certificate validation
+- [x] NTP time synchronization for certificate validation
+
+### Phase 4: Network Resilience - COMPLETED ✅
+- [x] WiFi auto-reconnect with exponential backoff (30s monitoring)
+- [x] MQTT auto-reconnect with exponential backoff (60s monitoring)
+- [x] Cascading recovery (WiFi down → MQTT disconnect → WiFi up → MQTT reconnect)
+- [x] Smart backoff delays (5s → 300s max for WiFi, 10s → 300s max for MQTT)
+- [x] Connection timeout protection (15s WiFi, no MQTT hanging)
+- [x] Watchdog protection during all reconnection attempts
 
 ## Implementation Complete - All Core Phases Done ✅
 
 ### Core Features Implemented:
-- ✅ **Phase 0**: WiFi client, static IP, 200ms relay pulse, 30s watchdog
+- ✅ **Phase 0**: WiFi client, static IP, 300ms relay pulse, 30s watchdog
 - ✅ **Phase 1**: Arduino Core dual tasks (HTTP on Core 0, MQTT on Core 1)  
 - ✅ **Phase 2**: HTTP Server with input validation and crash prevention
-- ✅ **Phase 3**: MQTT Client with TLS and auto-reconnect
+- ✅ **Phase 3**: MQTT Client with TLS certificate validation
+- ✅ **Phase 4**: Network resilience with robust auto-reconnect
 
 ### Ready for Deployment
 
 ## Deployment Checklist
 
-- [x] Update all credential placeholders (in config.h)
-- [x] Verify static IP doesn't conflict with network (192.168.1.100)
-- [x] Test relay pulse duration (200ms implemented)
-- [x] Confirm MQTT broker connectivity with 30s timeout
-- [x] Validate HTTP input parsing handles malformed timestamp strings (numeric check, length limits)
+- [x] Update all credential placeholders (configured in main.cpp)
+- [x] Verify static IP doesn't conflict with network (192.168.1.210)
+- [x] Test relay pulse duration (300ms implemented)
+- [x] Confirm MQTT broker connectivity with Let's Encrypt certificate validation
+- [x] Validate HTTP input parsing handles malformed timestamp strings (numeric check, length limits, overflow protection)
 - [x] Test Arduino Core task stability under load
 - [x] Physical button still works (GPIO 0)
-- [x] Implement MQTT auto-reconnect (5-second retry)
-- [ ] Test end-to-end HTTP and MQTT triggers
-- [ ] Implement WiFi auto-reconnect with exponential backoff (future enhancement)
+- [x] Implement robust WiFi auto-reconnect with exponential backoff
+- [x] Implement robust MQTT auto-reconnect with exponential backoff
+- [x] Fix timestamp overflow deadlock (13-digit milliseconds → 10-digit seconds)
+- [x] Add CORS headers for PWA compatibility
+- [x] Test end-to-end HTTP and MQTT triggers
+- [x] Wire relay to NO + COM terminals for momentary gate trigger
 
 ## Non-Functional Requirements
 

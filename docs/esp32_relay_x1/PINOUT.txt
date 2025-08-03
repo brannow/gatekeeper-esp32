@@ -1,0 +1,5 @@
+## GPIO pinout
+
+0 = BUTTON (IO0)
+16 = RELAY
+23 = LED

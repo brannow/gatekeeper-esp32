@@ -1,0 +1,21 @@
+ 1. FT232R Settings
+
+    Jumper moved to 3.3 V (middle + 3.3 V pins bridged).
+    Logic levels are now 3.3 V-safe for the ESP32.
+
+✅ 2. Pin map (FT232R ↔ ESP32 relay board)
+Table
+Copy
+FT232R pin	Wire colour*	ESP32 board pin	Notes
+GND	black	GND	any GND pin
+TX	orange	RX	FTDI → ESP32
+RX	yellow	TX	ESP32 → FTDI
+DTR	green	IO0	auto-reset / download
+VCC	—	leave open	board is self-powered from its own 5 V rail
+CTS	—	NC	not used
+*wire colours are just suggestions—use whatever your cable has.
+✅ 3. Enter download mode
+
+    DTR → IO0 already handled by the wiring above.
+    Press and release the EN / RST button on the relay board once after you start the upload.
+    (Some people add a second jumper between IO0 and GND manually if DTR is not wired, then remove it after flashing.)

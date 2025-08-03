@@ -3,3 +3,5 @@
 .vscode/c_cpp_properties.json
 .vscode/launch.json
 .vscode/ipch
+docs/.DS_Store
+docs/esp32_relay_x1/.DS_Store

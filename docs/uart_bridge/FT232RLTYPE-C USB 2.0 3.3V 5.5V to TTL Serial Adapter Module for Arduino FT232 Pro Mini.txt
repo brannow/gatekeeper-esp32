@@ -1,0 +1,34 @@
+
+    DTR: Data Terminal Ready - an output used for flow control
+    RX: Serial data Receive pin
+    TX: Serial data Transmit pin
+    VCC: Positive voltage output - this is controlled by the jumper. If the jumper is set to 5V, this will provide a 5V output. If the jumper is set to 3.3V, this will provide a 3.3V output.
+    CTS: Clear To Send - an input used for flow control
+    GND: Ground or 0V
+
+For most uses, you can simply connect the following pins:
+
+    RX on this board to the TX pin on your device
+    TX on this board to the RX pin on your device
+    GND on this board to GND on your device
+
+The VCC pin is ideal for powering small devices such as homemade circuits. This pin should not be connected when a device has a separate power supply as this may damage both devices.
+
+Please note that in 5V mode the maximum current draw on this pin is approximately 500mA. In 3.3V mode the maximum current draw on VCC is approximately 50mA.
+
+There are also several pins available as solder pads. These pins are labelled on the board. Connecting to these pins is not usually required and you should check the FTDI datasheet (linked below) before doing so.
+
+This adapter supports the following operating systems:
+
+    Windows 2000 (32 bit)
+    Windows XP (32 and 64 bit)
+    Windows Vista (32 and 64 bit)
+    Windows 7 (32 and 64 bit)
+    Windows 8 (32 and 64 bit)
+    Windows 8.1 (32 and 64 bit)
+    Windows 10  (32 and 64 bit)
+    Windows 11  
+    Linux 2.6+
+    Mac OS X 10.4, 10.5, 10.6, 10.7, 10.8 and 10.9
+
+The drivers can be downloaded from FTDI's website: https://ftdichip.com/drivers/vcp-drivers/

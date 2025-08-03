@@ -3,7 +3,7 @@
 ## Architecture Decision: Arduino Core + Dual Tasks
 - **Arduino Core Benefits**: Library compatibility, easier debugging, Arduino watchdog integration
 - **Dual Tasks**: `xTaskCreatePinnedToCore()` provides Arduino Core dual-task benefits
-- **HTTP Input Validation**: JSON parsing and content-type validation to prevent crashes
+- **HTTP Input Validation**: Numeric validation, fixed buffer sizes, bounds checking, no dynamic allocation
 - **Watchdog Timeout**: 30 seconds for proper TLS handshake completion
 - **Timestamp Logic**: Client-provided timestamps stored as int, age-based duplicate checking
 
@@ -43,16 +43,18 @@ void setup() {
 **Goal**: Crash-resistant local network gate control
 
 **Endpoints with Validation**:
-- `POST /trigger` - Validate JSON format, content-type, timestamp field
-- `GET /status` - Simple response, minimal validation needed
-- `GET /lastTrigger` - Return stored timestamp value
+- `POST /trigger` - Validate raw timestamp string (numeric, max 32 chars)
+- `GET /status` - Returns "1" or "0", minimal validation needed
+- `GET /lastTrigger` - Return stored timestamp as raw string
 
 **Input Validation Requirements**:
 ```cpp
-// Validate Content-Type: application/json
-// Parse JSON safely with error handling
-// Check timestamp is valid integer
-// Reject malformed requests gracefully
+// Fixed-size buffer: char timestampBuffer[33]; // 32 + null terminator
+// strncpy() with explicit null termination
+// Check timestamp string is numeric (isdigit check)
+// Validate length <= 32 characters before processing
+// No malloc/free - stack allocation only
+// Return plain text errors: "Invalid timestamp format", "Duplicate request"
 ```
 
 ### Phase 3: MQTT Client Arduino Task
@@ -67,8 +69,9 @@ const char* MQTT_PASSWORD = "YOUR_MQTT_PASSWORD";
 ```
 
 **Topics**:
-- Subscribe: `/house/iot/gate/esp32/trigger`
-- Publish: `/house/iot/gate/esp32/status`
+- Subscribe: `/house/iot/gate/esp32/trigger` (raw timestamp strings)
+- Publish: `/house/iot/gate/esp32/status` (1/0 values)
+- Message format: raw timestamp strings (consistent with HTTP API)
 
 ### Phase 4: Client Timestamp Management
 **Goal**: Simple duplicate prevention using client timestamps
@@ -77,6 +80,25 @@ const char* MQTT_PASSWORD = "YOUR_MQTT_PASSWORD";
 ```cpp
 unsigned long lastTriggerTimestamp = 0;
 const unsigned long MAX_AGE_SECONDS = 300; // 5 minutes
+
+bool parseTimestamp(const char* input, unsigned long& result) {
+    // Fixed buffer, bounds checking
+    char buffer[33]; // 32 + null terminator
+    strncpy(buffer, input, 32);
+    buffer[32] = '\0'; // Explicit null termination
+    
+    // Validate numeric only
+    for (int i = 0; buffer[i] != '\0'; i++) {
+        if (!isdigit(buffer[i])) return false;
+    }
+    
+    // Safe strtoul with endptr check
+    char* endptr;
+    result = strtoul(buffer, &endptr, 10);
+    
+    // Ensure entire string was consumed
+    return (*endptr == '\0');
+}
 
 bool isValidTrigger(unsigned long clientTimestamp) {
     unsigned long age = abs(clientTimestamp - lastTriggerTimestamp);
@@ -108,7 +130,7 @@ bool isValidTrigger(unsigned long clientTimestamp) {
 ```
 
 ### Integration Tests
-1. HTTP trigger with valid/invalid JSON
+1. HTTP trigger with valid/invalid timestamp strings (numeric validation)
 2. MQTT trigger from mosquitto_pub
 3. Malformed HTTP requests (crash testing)
 4. Arduino Core task monitoring via Serial output
@@ -157,7 +179,7 @@ if (!mqttClient.connected()) {
 - [ ] Verify static IP doesn't conflict with network
 - [ ] Test relay pulse duration (200ms ± 50ms)
 - [ ] Confirm MQTT broker connectivity with 30s timeout
-- [ ] Validate HTTP input parsing handles malformed JSON
+- [ ] Validate HTTP input parsing handles malformed timestamp strings (numeric check, length limits)
 - [ ] Test Arduino Core task stability under load
 - [ ] Physical button still works (GPIO 0)
 - [ ] Implement WiFi auto-reconnect with exponential backoff
@@ -178,7 +200,8 @@ if (!mqttClient.connected()) {
 **Security**:
 - TLS for MQTT (homebrew project, local trust model)
 - Local HTTP only (no external exposure)
-- Input validation as primary defense
+- Memory safety: fixed buffers, bounds checking, no dynamic allocation
+- Input validation as primary defense (numeric check, length limits, buffer overflow prevention)
 
 ---
 

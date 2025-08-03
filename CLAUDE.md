@@ -90,10 +90,12 @@ xTaskCreatePinnedToCore(httpTask, "HTTP", 8192, NULL, 1, NULL, 0);
 - Minimal HTTP API server with input validation
 - Local network access only
 - Endpoints:
-  - `POST /trigger` - Accepts timestamp in JSON body with validation
-  - `GET /status` - Returns current relay state
-  - `GET /lastTrigger` - Returns stored client timestamp
-- JSON parsing and content-type validation to prevent crashes
+  - `POST /trigger` - Accepts raw timestamp string in body (numeric validation, max 32 chars)
+  - `GET /status` - Returns relay state as "1" or "0"
+  - `GET /lastTrigger` - Returns stored client timestamp as raw string
+- Input validation: numeric check, length limits, buffer bounds checking
+- Memory safety: fixed-size buffers, no dynamic allocation, bounds validation
+- Error responses: "HTTP 400: Invalid timestamp format", "HTTP 429: Duplicate request"
 
 **Core 1: MQTT Client Task** (8KB stack)
 ```cpp
@@ -101,8 +103,9 @@ xTaskCreatePinnedToCore(mqttTask, "MQTT", 8192, NULL, 1, NULL, 1);
 ```
 - Connect to remote MQTT broker (`mqtt.rannow.de`)
 - Topics:
-  - Subscribe: `/house/iot/gate/esp32/trigger` (receive trigger commands)
+  - Subscribe: `/house/iot/gate/esp32/trigger` (receive raw timestamp strings)
   - Publish: `/house/iot/gate/esp32/status` (report relay state as 1/0)
+- MQTT message format: raw timestamp strings (consistent with HTTP API)
 - WiFi reconnection logic integrated
 
 ### Security Model

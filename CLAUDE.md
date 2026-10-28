@@ -117,7 +117,7 @@ xTaskCreatePinnedToCore(mqttTask, "MQTT", 8192, NULL, 1, NULL, 1);
 - TLS connection to broker via port 8883 (mqtts)
 - Let's Encrypt ISRG Root X1 certificate validation
 - NTP time synchronization for certificate validation
-- MQTT credentials defined as const variables (configured)
+- MQTT credentials from `include/secrets.h` (gitignored, template: `include/secrets.h.example`)
 - Dedicated ESP32 user with restricted permissions:
   - READ access: `iot/house/gate/esp32/trigger` topic only
   - WRITE access: `iot/house/gate/esp32/status` topic only
@@ -134,7 +134,7 @@ xTaskCreatePinnedToCore(mqttTask, "MQTT", 8192, NULL, 1, NULL, 1);
 ## Access Methods
 
 ### WIFI
-- WiFi credentials defined as const variables (user-provided placeholders)
+- WiFi credentials from `include/secrets.h` (gitignored, template: `include/secrets.h.example`)
 - Static IP configuration via const variables
 - Hardcoded gateway and DNS server addresses
 
@@ -203,7 +203,7 @@ Remote gate control from mobile devices, enabling:
 ## Implementation Approach
 - **Scope**: Private hobby project, single ESP32 deployment, **safety-critical gate control**
 - **Error Handling**: Happy-path focus, error handling deferred
-- **Configuration**: All credentials/settings as const variables with placeholders
+- **Configuration**: Settings as const variables; credentials only in gitignored `include/secrets.h` — never commit real values
 - **Timeline**: No pressure, iterative development
 - **File Structure**: Minimal files for safety - easier debugging when gate malfunctions
 
@@ -215,7 +215,8 @@ Gatekeeper_controller/
 │   ├── main.cpp            # All networking/logic - single file debugging
 │   └── safety.cpp          # GPIO control, watchdog, relay timing only
 ├── include/
-│   ├── config.h            # Credentials, pins, safety timeouts
+│   ├── config.h            # Pins, safety timeouts, config declarations
+│   ├── secrets.h.example   # Credential template → copy to secrets.h (gitignored)
 │   └── safety.h            # Hardware safety functions
 └── lib/                    # Arduino libraries only
 ```

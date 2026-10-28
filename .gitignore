@@ -5,3 +5,6 @@
 .vscode/ipch
 docs/.DS_Store
 docs/esp32_relay_x1/.DS_Store
+
+# local credentials (see include/secrets.h.example)
+include/secrets.h

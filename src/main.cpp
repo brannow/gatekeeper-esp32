@@ -6,19 +6,26 @@
 #include "config.h"
 #include "safety.h"
 
+// Credentials live in include/secrets.h (gitignored) - never commit real values here
+#if __has_include("secrets.h")
+#include "secrets.h"
+#else
+#error "include/secrets.h missing - copy include/secrets.h.example to include/secrets.h and fill in your values"
+#endif
+
 // Configuration variable definitions
-const char* WIFI_SSID = "WIFI_SSID";
-const char* WIFI_PASSWORD = "WIFI_PW";
+const char* WIFI_SSID = SECRET_WIFI_SSID;
+const char* WIFI_PASSWORD = SECRET_WIFI_PASSWORD;
 
 const IPAddress STATIC_IP(192, 168, 1, 210);
 const IPAddress GATEWAY(192, 168, 1, 1);
 const IPAddress SUBNET(255, 255, 255, 0);
 const IPAddress DNS_SERVER(1, 1, 1, 1);
 
-const char* MQTT_BROKER = "BROKER_DOMAIN_OR_IP";
+const char* MQTT_BROKER = SECRET_MQTT_BROKER;
 const int MQTT_PORT = 8883;
-const char* MQTT_USER = "USER";
-const char* MQTT_PASSWORD = "PASSWORD";
+const char* MQTT_USER = SECRET_MQTT_USER;
+const char* MQTT_PASSWORD = SECRET_MQTT_PASSWORD;
 const char* MQTT_CLIENT_ID = "esp32_gate_controller";
 
 const char* MQTT_TRIGGER_TOPIC = "iot/house/gate/esp32/trigger";
